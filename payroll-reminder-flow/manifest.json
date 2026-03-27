@@ -1,0 +1,22 @@
+{
+  "schema": "1.0",
+  "details": {
+    "displayName": "Payroll Cut-off Reminder — Approval Workflow",
+    "description": "Sends a payroll cut-off reminder to Nireen Unabia via Teams DM on the 10th and 25th of every month at 9:00 AM PHT for approval. If approved, broadcasts the reminder to the designated Teams channel at 2:00 PM PHT. If declined, notifies Nireen to provide corrections.",
+    "createdTime": "2026-03-26T00:00:00Z",
+    "packageTelemetryId": "payroll-cutoff-reminder-v1",
+    "creator": "Smartsourcing Finance"
+  },
+  "resources": [
+    {
+      "id": "payroll-cutoff-reminder",
+      "name": "Payroll Cut-off Reminder",
+      "type": "Microsoft.Flow/flows",
+      "path": "Microsoft.Flow/flows/payroll-cutoff-reminder.json",
+      "suggestedCreationType": "New",
+      "configurableBy": "User",
+      "hierarchy": "Root",
+      "dependsOn": []
+    }
+  ]
+}

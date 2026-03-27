@@ -1,0 +1,7 @@
+# Core image generation
+jinja2>=3.1.0
+playwright>=1.40.0
+
+# SharePoint upload (user-credential auth, no Azure AD required)
+Office365-REST-Python-Client>=2.5.0
+python-dotenv>=1.0.0

@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Montserrat', 'Trebuchet MS', Arial, sans-serif;
+      background: #ffffff;
+      width: 900px;
+      height: 420px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* ── Header ───────────────────────────────────────── */
+    .header {
+      background: #1B2D5E;
+      padding: 14px 24px 16px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .logo-row {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      margin-bottom: 6px;
+    }
+
+    .logo-text {
+      color: #ffffff;
+      font-size: 17px;
+      font-weight: 400;
+      letter-spacing: -0.2px;
+      white-space: nowrap;
+      line-height: 1;
+    }
+    .logo-text strong { font-weight: 800; }
+
+    .title {
+      color: #ffffff;
+      font-size: 28px;
+      font-weight: 900;
+      letter-spacing: -0.3px;
+    }
+
+    /* Decorative pink circles (top-right of header) */
+    .bubble {
+      position: absolute;
+      border-radius: 50%;
+      background: #FF2D7A;
+    }
+    .b1 { width: 90px; height: 90px; top: -28px; right: 52px; opacity: 0.95; }
+    .b2 { width: 58px; height: 58px; top: -14px; right: 10px; opacity: 0.80; }
+
+    /* ── Table ────────────────────────────────────────── */
+    .table-wrap {
+      padding: 14px 20px 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    thead th {
+      background: #1B2D5E;
+      color: #ffffff;
+      font-size: 10.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      text-align: center;
+      padding: 9px 8px;
+      border: 2.5px solid #ffffff;
+      line-height: 1.35;
+    }
+
+    tbody td {
+      text-align: center;
+      border: 2.5px solid #1B2D5E;
+      color: #1B2D5E;
+      padding: 7px 8px;
+      line-height: 1.4;
+      vertical-align: middle;
+    }
+
+    .td-period {
+      font-size: 13px;
+      font-weight: 800;
+      background: #EEF1F9;
+      width: 18%;
+    }
+
+    .td-center {
+      background: #ffffff;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .td-processing {
+      background: #EEF1F9;
+      font-size: 12.5px;
+      font-weight: 800;
+      width: 20%;
+    }
+
+    .day  { display: block; font-size: 12px; font-weight: 700; }
+    .date { display: block; font-size: 11.5px; font-weight: 600; }
+    .time { display: block; font-size: 14px; font-weight: 900; }
+
+    /* ── Footer ───────────────────────────────────────── */
+    .footer {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      background: #FF2D7A;
+      padding: 7px 24px;
+    }
+    .footer p {
+      color: #ffffff;
+      font-size: 11px;
+      font-weight: 600;
+      font-style: italic;
+    }
+
+    /* Pink accent dot bottom-left */
+    .dot-bl {
+      position: absolute;
+      width: 55px; height: 55px;
+      border-radius: 50%;
+      background: #FF2D7A;
+      bottom: 22px; left: -18px;
+      opacity: 0.25;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="header">
+    <div class="bubble b1"></div>
+    <div class="bubble b2"></div>
+
+    <div class="logo-row">
+      <img src="{{ logo_symbol_src }}" height="28" style="display:block;">
+      <span class="logo-text"><strong>smart</strong>sourcing</span>
+    </div>
+
+    <div class="title">Payroll Cut-off &amp; Approval Period</div>
+  </div>
+
+  <!-- Table -->
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:18%"></th>
+          <th style="width:21%">Level 1 Approval<br>Cut-Off</th>
+          <th style="width:18%">Draft Payslip<br>Release</th>
+          <th style="width:23%">Payroll Dispute Ticket<br>Submission Cut-Off</th>
+          <th style="width:20%">Payroll<br>Processing</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="td-period" rowspan="3">{{ period_label }}</td>
+          <td class="td-center">
+            <span class="day">{{ level1_day }}</span>
+          </td>
+          <td class="td-center" rowspan="3">
+            <span class="day">{{ draft_day }}</span>
+            <span class="date">{{ draft_date }}</span>
+          </td>
+          <td class="td-center">
+            <span class="day">{{ dispute_day }}</span>
+          </td>
+          <td class="td-processing" rowspan="3">{{ processing_range }}</td>
+        </tr>
+        <tr>
+          <td class="td-center"><span class="date">{{ level1_date }}</span></td>
+          <td class="td-center"><span class="date">{{ dispute_date }}</span></td>
+        </tr>
+        <tr>
+          <td class="td-center"><span class="time">{{ level1_time }}</span></td>
+          <td class="td-center"><span class="time">{{ dispute_time }}</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="dot-bl"></div>
+
+  <div class="footer">
+    <p>* For any attendance &amp; payroll related concerns, file a ticket via SmartDesk.</p>
+  </div>
+
+</body>
+</html>

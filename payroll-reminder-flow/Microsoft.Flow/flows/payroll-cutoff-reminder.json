@@ -1,0 +1,221 @@
+{
+  "name": "payroll-cutoff-reminder",
+  "id": "/providers/Microsoft.ProcessSimple/environments/REPLACE_WITH_YOUR_ENVIRONMENT_ID/flows/REPLACE_WITH_NEW_GUID",
+  "type": "Microsoft.ProcessSimple/environments/flows",
+  "properties": {
+    "apiId": "/providers/Microsoft.PowerApps/apis/shared_logicflows",
+    "displayName": "Payroll Cut-off Reminder",
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {
+        "$authentication": {
+          "defaultValue": {},
+          "type": "SecureObject"
+        },
+        "$connections": {
+          "defaultValue": {},
+          "type": "Object"
+        }
+      },
+
+      "triggers": {
+        "Recurrence": {
+          "description": "Fires at 9:00 AM Philippine Time (Asia/Manila) on the 10th and 25th of every month.",
+          "recurrence": {
+            "frequency": "Month",
+            "interval": 1,
+            "schedule": {
+              "monthDays": [10, 25],
+              "hours": ["9"],
+              "minutes": ["0"]
+            },
+            "timeZone": "Asia/Manila"
+          },
+          "type": "Recurrence"
+        }
+      },
+
+      "actions": {
+
+        "Calculate_Payroll_Date": {
+          "runAfter": {},
+          "type": "Compose",
+          "description": "10th trigger = payroll on 20th of same month. 25th trigger = payroll on 5th of next month.",
+          "inputs": "@if(equals(dayOfMonth(convertTimeZone(utcNow(), 'UTC', 'Asia/Manila')), 10), formatDateTime(addDays(startOfMonth(convertTimeZone(utcNow(), 'UTC', 'Asia/Manila')), 19), 'MMMM d, yyyy'), formatDateTime(addDays(startOfMonth(addToTime(convertTimeZone(utcNow(), 'UTC', 'Asia/Manila'), 1, 'Month')), 4), 'MMMM d, yyyy'))"
+        },
+
+        "Calculate_2PM_PHT_Timestamp": {
+          "runAfter": {},
+          "type": "Compose",
+          "description": "Calculates today's 2:00 PM PHT as a UTC-formatted timestamp for the Delay Until action.",
+          "inputs": "@addHours(startOfDay(convertTimeZone(utcNow(), 'UTC', 'Asia/Manila')), 14)"
+        },
+
+        "Set_Image_URLs": {
+          "runAfter": {
+            "Calculate_Payroll_Date": ["Succeeded"],
+            "Calculate_2PM_PHT_Timestamp": ["Succeeded"]
+          },
+          "type": "Compose",
+          "description": "Fixed SharePoint URLs for the two reminder images. These are uploaded by GitHub Actions at 8:30 AM PHT before this flow fires. Replace REPLACE_WITH_* with the actual permanent SharePoint URLs from your document library.",
+          "inputs": {
+            "reminder1_url": "REPLACE_WITH_SHAREPOINT_URL_FOR_Reminder1.png",
+            "cutoff_url": "REPLACE_WITH_SHAREPOINT_URL_FOR_PayrollCutoff.png"
+          }
+        },
+
+        "Post_Approval_Card_to_Nireen": {
+          "runAfter": {
+            "Set_Image_URLs": ["Succeeded"]
+          },
+          "type": "ApiConnectionWebhook",
+          "description": "Sends an Adaptive Card to Nireen via Teams DM with a message preview and Approve/Decline buttons. The flow pauses here until she responds.",
+          "inputs": {
+            "host": {
+              "connection": {
+                "name": "@parameters('$connections')['shared_teams']['connectionId']"
+              }
+            },
+            "body": {
+              "notificationUrl": "@{listCallbackUrl()}",
+              "body": {
+                "messageBody": "@{concat('{\"type\":\"AdaptiveCard\",\"$schema\":\"http://adaptivecards.io/schemas/adaptive-card.json\",\"version\":\"1.4\",\"msteams\":{\"width\":\"Full\"},\"body\":[{\"type\":\"Container\",\"style\":\"emphasis\",\"bleed\":true,\"items\":[{\"type\":\"TextBlock\",\"text\":\"PAYROLL CUT-OFF REMINDER\",\"weight\":\"Bolder\",\"size\":\"Large\",\"color\":\"Accent\",\"wrap\":true},{\"type\":\"TextBlock\",\"text\":\"Finance Team  |  Approval Required Before Broadcasting\",\"size\":\"Small\",\"isSubtle\":true,\"wrap\":true}]},{\"type\":\"TextBlock\",\"text\":\"Hi Nireen,\\\\n\\\\nPlease review the payroll cut-off reminder below for the **', outputs('Calculate_Payroll_Date'), '** payroll. If everything looks good, click Approve and it will be broadcast to Smartees at 2:00 PM PHT today.\",\"wrap\":true,\"spacing\":\"Medium\"},{\"type\":\"Container\",\"style\":\"default\",\"separator\":true,\"spacing\":\"Medium\",\"items\":[{\"type\":\"TextBlock\",\"text\":\"Preview - Message to Smartees:\",\"weight\":\"Bolder\",\"wrap\":true,\"size\":\"Medium\"},{\"type\":\"TextBlock\",\"text\":\"Hi Smartees,\\\\n\\\\nThis is a quick reminder regarding the attendance cut-off schedule and approval for the **', outputs('Calculate_Payroll_Date'), '** payroll.\\\\n\\\\nTo ensure a smooth and timely payroll computation, strict compliance with the deadlines is a must.\\\\n\\\\nPlease also take note of the following reminders:\\\\n- Make sure your change of shift schedules are filed via Sprout Schedule Adjustment.\\\\n- Submit your Leave and Overtime requests accordingly.\\\\n- Review your logs via My Attendance under the Profile tab in Sprout. If you notice any missing logs due to valid reasons (e.g., system issues), please file a Certificate of Attendance as soon as possible.\\\\n\\\\nIf you are a bit late with your attendance filing, approvals, or payroll dispute submissions, your entries will be processed in the next payroll run, so stay on top of your attendance daily!\\\\n\\\\nThank you!\",\"wrap\":true,\"size\":\"Small\",\"color\":\"Default\"}]},{\"type\":\"FactSet\",\"separator\":true,\"spacing\":\"Medium\",\"facts\":[{\"title\":\"Payroll Date:\",\"value\":\"', outputs('Calculate_Payroll_Date'), '\"},{\"title\":\"Broadcast Time:\",\"value\":\"2:00 PM PHT (if approved)\"},{\"title\":\"Attachments:\",\"value\":\"Auto-generated images attached below\"}]},{\"type\":\"Image\",\"url\":\"', outputs('Set_Image_URLs')?['reminder1_url'], '\",\"size\":\"Stretch\",\"separator\":true},{\"type\":\"Image\",\"url\":\"', outputs('Set_Image_URLs')?['cutoff_url'], '\",\"size\":\"Stretch\"}],\"actions\":[{\"type\":\"Action.Submit\",\"title\":\"Approve - Schedule Broadcast at 2 PM\",\"style\":\"positive\",\"data\":{\"action\":\"approve\"}},{\"type\":\"Action.Submit\",\"title\":\"Decline - I will reply with corrections\",\"style\":\"destructive\",\"data\":{\"action\":\"decline\"}}]}' )}",
+                "recipient": {
+                  "to": "REPLACE_WITH_NIREEN_EMAIL"
+                },
+                "updateMessage": "Thank you for your response! The flow will proceed accordingly."
+              }
+            },
+            "path": "/v1.0/teams/conversation/adaptivecard/poster/User/location/Chat with Flow bot/@{encodeURIComponent('REPLACE_WITH_NIREEN_EMAIL')}"
+          }
+        },
+
+        "Check_Approval_Response": {
+          "runAfter": {
+            "Post_Approval_Card_to_Nireen": ["Succeeded"]
+          },
+          "type": "If",
+          "description": "Branches based on Nireen's response. 'approve' goes to broadcast; anything else goes to decline notification.",
+          "expression": {
+            "equals": [
+              "@outputs('Post_Approval_Card_to_Nireen')?['body/data/action']",
+              "approve"
+            ]
+          },
+
+          "actions": {
+
+            "Delay_Until_2PM_PHT": {
+              "runAfter": {},
+              "type": "Wait",
+              "description": "Waits until 2:00 PM PHT before posting to the Teams channel. If Nireen approves after 2 PM, the flow continues immediately.",
+              "inputs": {
+                "until": {
+                  "timestamp": "@outputs('Calculate_2PM_PHT_Timestamp')"
+                }
+              }
+            },
+
+            "Post_Broadcast_to_Teams_Channel": {
+              "runAfter": {
+                "Delay_Until_2PM_PHT": ["Succeeded"]
+              },
+              "type": "ApiConnection",
+              "description": "Posts the full payroll cut-off reminder as an Adaptive Card to the designated Teams channel, including the two attached infographic images from SharePoint.",
+              "inputs": {
+                "host": {
+                  "connection": {
+                    "name": "@parameters('$connections')['shared_teams']['connectionId']"
+                  }
+                },
+                "method": "post",
+                "body": {
+                  "messageBody": "@{concat('{\"type\":\"AdaptiveCard\",\"$schema\":\"http://adaptivecards.io/schemas/adaptive-card.json\",\"version\":\"1.4\",\"msteams\":{\"width\":\"Full\"},\"body\":[{\"type\":\"Container\",\"style\":\"emphasis\",\"bleed\":true,\"items\":[{\"type\":\"TextBlock\",\"text\":\"Payroll Cut-off Reminder\",\"weight\":\"Bolder\",\"size\":\"ExtraLarge\",\"wrap\":true},{\"type\":\"TextBlock\",\"text\":\"Finance\",\"size\":\"Medium\",\"isSubtle\":true,\"wrap\":true}]},{\"type\":\"TextBlock\",\"text\":\"Hi Smartees,\",\"weight\":\"Bolder\",\"size\":\"Medium\",\"wrap\":true,\"spacing\":\"Medium\"},{\"type\":\"TextBlock\",\"text\":\"This is a quick reminder regarding the attendance cut-off schedule and approval for the **', outputs('Calculate_Payroll_Date'), '** payroll.\\\\n\\\\nTo ensure a smooth and timely payroll computation, strict compliance with the deadlines is a must.\",\"wrap\":true},{\"type\":\"TextBlock\",\"text\":\"Please also take note of the following reminders:\",\"weight\":\"Bolder\",\"wrap\":true,\"spacing\":\"Medium\"},{\"type\":\"TextBlock\",\"text\":\"- Make sure your change of shift schedules are filed via Sprout Schedule Adjustment.\\\\n- Submit your Leave and Overtime requests accordingly.\\\\n- Review your logs via My Attendance under the Profile tab in Sprout. If you notice any missing logs due to valid reasons (e.g., system issues), please file a Certificate of Attendance as soon as possible.\",\"wrap\":true},{\"type\":\"TextBlock\",\"text\":\"If you are a bit late with your attendance filing, approvals, or payroll dispute submissions, your entries will be processed in the next payroll run, so stay on top of your attendance daily!\",\"wrap\":true,\"spacing\":\"Medium\"},{\"type\":\"TextBlock\",\"text\":\"Thank you!\",\"wrap\":true,\"spacing\":\"Medium\"},{\"type\":\"Image\",\"url\":\"', outputs('Set_Image_URLs')?['reminder1_url'], '\",\"size\":\"Stretch\",\"separator\":true,\"spacing\":\"Medium\"},{\"type\":\"Image\",\"url\":\"', outputs('Set_Image_URLs')?['cutoff_url'], '\",\"size\":\"Stretch\",\"spacing\":\"Small\"}]}' )}",
+                  "recipient": {
+                    "groupId": "REPLACE_WITH_TEAMS_GROUP_ID",
+                    "channelId": "REPLACE_WITH_TEAMS_CHANNEL_ID"
+                  }
+                },
+                "path": "/v1.0/teams/conversation/adaptivecard/poster/Flow bot/location/Channel"
+              }
+            },
+
+            "Notify_Nireen_Broadcast_Sent": {
+              "runAfter": {
+                "Post_Broadcast_to_Teams_Channel": ["Succeeded"]
+              },
+              "type": "ApiConnection",
+              "description": "Sends Nireen a confirmation that the broadcast was successfully posted to the Teams channel.",
+              "inputs": {
+                "host": {
+                  "connection": {
+                    "name": "@parameters('$connections')['shared_teams']['connectionId']"
+                  }
+                },
+                "method": "post",
+                "body": {
+                  "rootMessage": {
+                    "body": {
+                      "contentType": "html",
+                      "content": "<p><strong>Done!</strong> The payroll cut-off reminder for the <strong>@{outputs('Calculate_Payroll_Date')}</strong> payroll has been successfully broadcast to the Smartees Teams channel at 2:00 PM PHT.</p><p>No further action needed.</p>"
+                    }
+                  },
+                  "recipient": {
+                    "to": "REPLACE_WITH_NIREEN_EMAIL"
+                  }
+                },
+                "path": "/v1.0/teams/conversation/message/poster/Flow bot/location/Chat with Flow bot/@{encodeURIComponent('REPLACE_WITH_NIREEN_EMAIL')}"
+              }
+            }
+
+          },
+
+          "else": {
+            "actions": {
+
+              "Notify_Nireen_Declined": {
+                "runAfter": {},
+                "type": "ApiConnection",
+                "description": "Tells Nireen her decline was captured and asks her to reply with the corrections needed.",
+                "inputs": {
+                  "host": {
+                    "connection": {
+                      "name": "@parameters('$connections')['shared_teams']['connectionId']"
+                    }
+                  },
+                  "method": "post",
+                  "body": {
+                    "rootMessage": {
+                      "body": {
+                        "contentType": "html",
+                        "content": "<p>You declined the payroll cut-off reminder broadcast for the <strong>@{outputs('Calculate_Payroll_Date')}</strong> payroll.</p><p>Please reply to this message with the corrections needed. Once the content is updated in SharePoint, you can manually re-run the flow from Power Automate, or it will run again automatically on the next scheduled date.</p>"
+                      }
+                    },
+                    "recipient": {
+                      "to": "REPLACE_WITH_NIREEN_EMAIL"
+                    }
+                  },
+                  "path": "/v1.0/teams/conversation/message/poster/Flow bot/location/Chat with Flow bot/@{encodeURIComponent('REPLACE_WITH_NIREEN_EMAIL')}"
+                }
+              }
+
+            }
+          }
+        }
+
+      },
+      "outputs": {}
+    },
+
+    "connectionReferences": {
+      "shared_teams": {
+        "runtimeSource": "invoker",
+        "connection": {},
+        "api": {
+          "name": "shared_teams"
+        }
+      }
+    }
+  }
+}

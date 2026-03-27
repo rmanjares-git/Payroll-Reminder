@@ -1,0 +1,54 @@
+name: Generate & Upload Payroll Reminder Images
+
+on:
+  # Runs at 8:30 AM PHT (00:30 UTC) on the 10th and 25th of every month
+  # This ensures images are ready before the Power Automate flow fires at 9:00 AM PHT
+  schedule:
+    - cron: "30 0 10,25 * *"
+
+  # Allow manual runs for testing (e.g. if you need to re-generate for a specific date)
+  workflow_dispatch:
+    inputs:
+      date:
+        description: "Date to generate for (YYYY-MM-DD). Leave blank to use today."
+        required: false
+        default: ""
+
+jobs:
+  generate-and-upload:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r image_generator/requirements.txt
+
+      - name: Install Playwright Chromium
+        run: python -m playwright install chromium --with-deps
+
+      - name: Generate images
+        env:
+          DATE_ARG: ${{ github.event.inputs.date }}
+        run: |
+          if [ -n "$DATE_ARG" ]; then
+            python image_generator/generate_images.py "$DATE_ARG"
+          else
+            python image_generator/generate_images.py
+          fi
+
+      - name: Upload images to SharePoint
+        env:
+          M365_USERNAME: ${{ secrets.M365_USERNAME }}
+          M365_PASSWORD: ${{ secrets.M365_PASSWORD }}
+          SHAREPOINT_SITE_URL: ${{ secrets.SHAREPOINT_SITE_URL }}
+          SHAREPOINT_FOLDER: ${{ secrets.SHAREPOINT_FOLDER }}
+        run: python image_generator/sharepoint_upload.py image_generator/output
