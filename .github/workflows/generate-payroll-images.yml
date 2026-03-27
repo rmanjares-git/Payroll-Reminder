@@ -18,6 +18,9 @@ jobs:
   generate-and-upload:
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: write   # needed to push the generated images back to the repo
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -30,7 +33,7 @@ jobs:
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r image_generator/requirements.txt
+          pip install jinja2 playwright python-dotenv
 
       - name: Install Playwright Chromium
         run: python -m playwright install chromium --with-deps
@@ -39,16 +42,19 @@ jobs:
         env:
           DATE_ARG: ${{ github.event.inputs.date }}
         run: |
+          mkdir -p images
           if [ -n "$DATE_ARG" ]; then
             python image_generator/generate_images.py "$DATE_ARG"
           else
             python image_generator/generate_images.py
           fi
+          cp "image_generator/output/Reminder 1.png" "images/Reminder 1.png"
+          cp "image_generator/output/Payroll Cut-off & Approval Period.png" "images/Payroll Cut-off & Approval Period.png"
 
-      - name: Upload images to SharePoint
-        env:
-          M365_USERNAME: ${{ secrets.M365_USERNAME }}
-          M365_PASSWORD: ${{ secrets.M365_PASSWORD }}
-          SHAREPOINT_SITE_URL: ${{ secrets.SHAREPOINT_SITE_URL }}
-          SHAREPOINT_FOLDER: ${{ secrets.SHAREPOINT_FOLDER }}
-        run: python image_generator/sharepoint_upload.py image_generator/output
+      - name: Commit and push images
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add "images/Reminder 1.png" "images/Payroll Cut-off & Approval Period.png"
+          git diff --staged --quiet || git commit -m "chore: update payroll reminder images [skip ci]"
+          git push

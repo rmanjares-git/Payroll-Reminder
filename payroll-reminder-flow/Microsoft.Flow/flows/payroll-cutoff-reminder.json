@@ -58,10 +58,10 @@
             "Calculate_2PM_PHT_Timestamp": ["Succeeded"]
           },
           "type": "Compose",
-          "description": "Fixed SharePoint URLs for the two reminder images. These are uploaded by GitHub Actions at 8:30 AM PHT before this flow fires. Replace REPLACE_WITH_* with the actual permanent SharePoint URLs from your document library.",
+          "description": "Fixed raw GitHub URLs for the two reminder images. GitHub Actions commits fresh images to the repo at 8:30 AM PHT before this flow fires. These URLs always serve the latest committed version.",
           "inputs": {
-            "reminder1_url": "REPLACE_WITH_SHAREPOINT_URL_FOR_Reminder1.png",
-            "cutoff_url": "REPLACE_WITH_SHAREPOINT_URL_FOR_PayrollCutoff.png"
+            "reminder1_url": "https://raw.githubusercontent.com/rmanjares-git/Payroll-Reminder/main/images/Reminder%201.png",
+            "cutoff_url": "https://raw.githubusercontent.com/rmanjares-git/Payroll-Reminder/main/images/Payroll%20Cut-off%20%26%20Approval%20Period.png"
           }
         },
 
